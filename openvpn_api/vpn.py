@@ -3,10 +3,11 @@ import logging
 import re
 import socket
 from enum import Enum
-from typing import Optional, Generator
+from typing import Optional, Generator, Union
 
 import openvpn_status
 from openvpn_status.models import Status
+from openvpn_status.utils import PeerAddress
 
 from openvpn_api.models.state import State
 from openvpn_api.models.stats import ServerStats
@@ -192,3 +193,17 @@ class VPN:
         """
         raw = self.send_command("status 1")
         return openvpn_status.parse_status(raw)
+
+    def disconnect_client(self, client: Union[PeerAddress, str]) -> None:
+        """Disconnect a given client from VPN
+        """
+        if isinstance(client, PeerAddress):
+            host = client.host.compressed
+            port = client.port
+            command = f"kill {host}:{port}"
+            self.send_command(command)
+        elif isinstance(client, str):
+            command = f"client-kill {client}"
+            self.send_command(command)
+        else:
+            raise ValueError(f"Invalid value {client} for client.")
